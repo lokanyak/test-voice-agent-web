@@ -1,46 +1,29 @@
 import { Button } from '@/components/ui/button';
-import { Menu, Bell, User } from 'lucide-react';
+import { Menu, Bell, User, Sun, Moon } from 'lucide-react';
+import { TierUpgrade } from '../dashboard/TierUpgrade';
 
-interface HeaderProps {
-  onMenuClick: () => void;
-}
+export function Header() {
+  const toggleTheme = () => {
+    document.documentElement.classList.toggle('dark');
+  };
 
-export function Header({ onMenuClick }: HeaderProps) {
   return (
-    <header className="bg-card shadow-sm border-b lg:border-none">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 justify-between items-center">
-          <div className="flex items-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden text-muted-foreground"
-              onClick={onMenuClick}
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="hidden md:block text-sm text-muted-foreground">
-              You're on a trial. To unlock full access, please{' '}
-              <span className="text-primary font-medium cursor-pointer hover:underline">upgrade</span>.
-            </div>
-            
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm">
-                Add Funds
-              </Button>
-              <Button variant="ghost" size="icon" className="text-muted-foreground">
-                <Bell className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="text-muted-foreground">
-                <User className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-        </div>
+    <header className="flex h-14 items-center gap-4 border-b bg-background px-6">
+      <div className="flex-1">
+        {/* Can add breadcrumbs or page title here */}
       </div>
+      <TierUpgrade currentTier="FREE" />
+      <Button variant="ghost" size="icon" onClick={toggleTheme}>
+        <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+        <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        <span className="sr-only">Toggle theme</span>
+      </Button>
+      <Button variant="ghost" size="icon">
+        <Bell className="h-5 w-5" />
+      </Button>
+      <Button variant="ghost" size="icon">
+        <User className="h-5 w-5" />
+      </Button>
     </header>
   );
 }

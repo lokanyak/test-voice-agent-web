@@ -1,70 +1,52 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MetricCard } from '@/components/dashboard/MetricCard';
 import { LanguageChart } from '@/components/dashboard/LanguageChart';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { CallVolumeChart } from '@/components/dashboard/CallVolumeChart';
-import { TierUpgrade } from '@/components/dashboard/TierUpgrade';
-import { Plus } from 'lucide-react';
+import { Plus, Bot, Phone, Zap, IndianRupee } from 'lucide-react';
+import { DASHBOARD_METRICS } from '@/lib/mock-data';
+
+const kpiData = [
+  { title: 'Total Agents', value: DASHBOARD_METRICS.totalAgents.value, icon: Bot },
+  { title: 'Calls Today', value: DASHBOARD_METRICS.callsToday.value, icon: Phone },
+  { title: 'Avg. Response Time', value: DASHBOARD_METRICS.avgResponseTime.value, icon: Zap },
+  { title: 'Monthly Cost', value: DASHBOARD_METRICS.monthlyCost.value, icon: IndianRupee },
+];
 
 export function Dashboard() {
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Welcome back, Lokananth!</h1>
-          <p className="text-muted-foreground">Here's your voice agent performance overview</p>
-        </div>
-        <div className="flex gap-3 self-end sm:self-center">
-          <TierUpgrade currentTier="FREE" />
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Create Agent
-          </Button>
-        </div>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" /> Create Agent
+        </Button>
       </div>
 
-      {/* Main Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Total Agents"
-          value="3"
-          change="+12%"
-          changeType="positive"
-          icon="Bot"
-          description="Active voice agents"
-        />
-        <MetricCard
-          title="Calls Today"
-          value="47"
-          change="+23%"
-          changeType="positive"
-          icon="Phone"
-          description="Browser + PSTN calls"
-          isLive={true}
-        />
-        <MetricCard
-          title="Avg Response Time"
-          value="1.2s"
-          change="-0.3s"
-          changeType="positive"
-          icon="Zap"
-          description="STT → LLM → TTS"
-        />
-        <MetricCard
-          title="This Month Cost"
-          value="₹2,840"
-          change="+₹450"
-          changeType="neutral"
-          icon="IndianRupee"
-          description="API + Platform fees"
-        />
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {kpiData.map((kpi) => (
+          <Card key={kpi.title}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
+              <kpi.icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{kpi.value}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Call Volume</CardTitle>
+          </CardHeader>
+          <CardContent className="pl-2">
+            <CallVolumeChart />
+          </CardContent>
+        </Card>
+        <Card className="col-span-3">
           <CardHeader>
             <CardTitle>Language Distribution</CardTitle>
           </CardHeader>
@@ -72,26 +54,12 @@ export function Dashboard() {
             <LanguageChart />
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Call Volume (Last 7 Days)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CallVolumeChart />
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Activity Feed */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ActivityFeed />
-        </CardContent>
-      </Card>
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
+        <ActivityFeed />
+      </div>
     </div>
   );
 }

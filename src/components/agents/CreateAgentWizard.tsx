@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, Control, UseFormWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useDropzone } from 'react-dropzone';
@@ -16,28 +16,11 @@ import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Bot, Cpu, Mic, Settings, Check, Sparkles, BookOpen, UserPlus, UploadCloud, FileText, Languages, TestTube } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bot, Cpu, Mic, Settings, Check, Sparkles, BookOpen, UserPlus, UploadCloud, Languages, TestTube, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAgentsStore } from '@/stores/agentsStore';
 import { toast } from 'sonner';
 import { Agent, Lang } from '@/types/contracts';
-
-interface CreateAgentWizardProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-const steps = [
-  { id: 'basics', title: 'Basic Information', icon: Settings },
-  { id: 'welcome', title: 'Welcome Message', icon: Bot },
-  { id: 'prompt', title: 'System Prompt', icon: Sparkles },
-  { id: 'engine', title: 'AI Engine', icon: Cpu },
-  { id: 'transcriber', title: 'Transcriber', icon: Languages },
-  { id: 'voice', title: 'Voice & Language', icon: Mic },
-  { id: 'knowledge', title: 'Knowledge Base', icon: BookOpen },
-  { id: 'advanced', title: 'Advanced Functions', icon: UserPlus },
-  { id: 'review', title: 'Review & Create', icon: Check },
-];
 
 const agentSchema = z.object({
     name: z.string().min(3, "Agent name is required"),
@@ -88,102 +71,18 @@ const voiceOptions = {
     }
 };
 
-const useAutoSave = (formData: AgentFormData, isDirty: boolean) => {
-    const [saveStatus, setSaveStatus] = useState('Saved');
-    
-    useEffect(() => {
-        if (!isDirty) return;
-        setSaveStatus('Saving...');
-        const handler = setTimeout(() => {
-            console.log('Auto-saving draft:', formData);
-            // In a real app, you'd save to localStorage or a backend here.
-            setSaveStatus('Saved');
-            toast.info("Draft auto-saved.");
-        }, 2000);
+interface LanguageVoiceConfigProps {
+    lang: Lang;
+    label: string;
+    control: Control<AgentFormData>;
+    watch: UseFormWatch<AgentFormData>;
+}
 
-        return () => {
-            clearTimeout(handler);
-        };
-    }, [formData, isDirty]);
-    
-    return saveStatus;
-};
-
-export function CreateAgentWizard({ open, onOpenChange }: CreateAgentWizardProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const createAgent = useAgentsStore(state => state.createAgent);
-  
-  const { control, handleSubmit, watch, trigger, formState: { errors, isDirty } } = useForm<AgentFormData>({
-    resolver: zodResolver(agentSchema),
-    defaultValues: {
-        name: '',
-        description: '',
-        category: 'custom',
-        welcome: '',
-        systemPrompt: '',
-        llmModel: 'gpt-4o',
-        temperature: 0.7,
-        maxTokens: 1024,
-        stt: { provider: 'deepgram', model: 'nova-3' },
-        languages: { 'en-IN': true, 'hi-IN': false, 'or-IN': false },
-        voiceConfig: {
-            'en-IN': { provider: 'cartesia', voiceId: 'Sonia', speed: 1, pitch: 0 },
-            'hi-IN': { provider: 'sarvam', voiceId: 'Anushka', speed: 1, pitch: 0 },
-            'or-IN': { provider: 'sarvam', voiceId: 'Anusha-OD', speed: 1, pitch: 0 },
-        },
-        knowledgeBase: { files: [], urls: [] },
-        advanced: { calendarIntegration: false, callRecording: true },
-    }
-  });
-  
-  const formData = watch();
-  const saveStatus = useAutoSave(formData, isDirty);
-
-  const handleNext = async () => {
-    const fieldsToValidate = Object.keys(agentSchema.shape).filter((_, i) => i <= currentStep);
-    const isValid = await trigger(fieldsToValidate as any);
-    if (isValid) {
-        setCurrentStep(s => Math.min(s + 1, steps.length - 1));
-    } else {
-        toast.error("Please fix the errors before proceeding.");
-    }
-  };
-
-  const handlePrev = () => setCurrentStep(s => Math.max(s - 1, 0));
-
-  const onSubmit = (data: AgentFormData) => {
-    const enabledLanguages = Object.entries(data.languages)
-        .filter(([, enabled]) => enabled)
-        .map(([lang]) => lang as Lang);
-
-    const newAgentData: Omit<Agent, 'id' | 'createdAt' | 'updatedAt' | 'status'> = {
-        name: data.name,
-        description: data.description,
-        category: data.category,
-        welcome: data.welcome,
-        systemPrompt: data.systemPrompt,
-        languages: enabledLanguages,
-        providers: { llm: 'openai', stt: data.stt.provider, tts: 'cartesia' }, // Simplified
-        voice: { byLang: data.voiceConfig || {} },
-        llmConfig: {
-            model: data.llmModel,
-            temperature: data.temperature,
-            maxTokens: data.maxTokens,
-        },
-        knowledgeBase: { enabled: !!data.knowledgeBase?.files?.length, documentIds: [] },
-        advanced: { tools: data.advanced?.calendarIntegration ? ['calendar'] : [], callRecording: !!data.advanced?.callRecording },
-    };
-    const created = createAgent(newAgentData);
-    toast.success(`Agent "${created.name}" created successfully!`);
-    onOpenChange(false);
-    setCurrentStep(0);
-  };
-
-  const LanguageVoiceConfig = ({ lang, label }: { lang: Lang, label: string }) => {
+const LanguageVoiceConfig = ({ lang, label, control, watch }: LanguageVoiceConfigProps) => {
     const isEnabled = watch(`languages.${lang}`);
     if (!isEnabled) return null;
 
-    const provider = watch(`voiceConfig.${lang}.provider`) as keyof typeof voiceOptions;
+    const provider = watch(`voiceConfig.${lang}.provider`) as keyof typeof voiceOptions || 'sarvam';
 
     return (
         <Card className="p-4 bg-muted/50">
@@ -215,9 +114,9 @@ export function CreateAgentWizard({ open, onOpenChange }: CreateAgentWizardProps
             </CardContent>
         </Card>
     );
-  }
+};
 
-  const KnowledgeBaseStep = () => {
+const KnowledgeBaseStep = () => {
     const { acceptedFiles, getRootProps, getInputProps } = useDropzone();
     return (
         <div className="space-y-6">
@@ -237,7 +136,138 @@ export function CreateAgentWizard({ open, onOpenChange }: CreateAgentWizardProps
             )}
         </div>
     );
-  }
+};
+
+const useAutoSave = (formData: AgentFormData, isDirty: boolean) => {
+    const [saveStatus, setSaveStatus] = useState('Saved');
+    const stringifiedFormData = JSON.stringify(formData);
+
+    useEffect(() => {
+        if (!isDirty) {
+            setSaveStatus('Saved');
+            return;
+        };
+        setSaveStatus('Saving...');
+        const handler = setTimeout(() => {
+            console.log('Auto-saving draft:', formData);
+            setSaveStatus('Saved');
+            toast.info("Draft auto-saved.");
+        }, 2000);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [stringifiedFormData, isDirty]);
+    
+    return saveStatus;
+};
+
+interface CreateAgentWizardProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const steps = [
+  { id: 'basics', title: 'Basic Information', icon: Settings, fields: ['name', 'category'] },
+  { id: 'welcome', title: 'Welcome Message', icon: Bot, fields: ['welcome'] },
+  { id: 'prompt', title: 'System Prompt', icon: Sparkles, fields: ['systemPrompt'] },
+  { id: 'engine', title: 'AI Engine', icon: Cpu, fields: ['llmModel', 'temperature', 'maxTokens'] },
+  { id: 'transcriber', title: 'Transcriber', icon: Languages, fields: ['stt'] },
+  { id: 'voice', title: 'Voice & Language', icon: Mic, fields: ['languages', 'voiceConfig'] },
+  { id: 'knowledge', title: 'Knowledge Base', icon: BookOpen, fields: [] },
+  { id: 'advanced', title: 'Advanced Functions', icon: UserPlus, fields: [] },
+  { id: 'review', title: 'Review & Create', icon: Check, fields: [] },
+];
+
+export function CreateAgentWizard({ open, onOpenChange }: CreateAgentWizardProps) {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const createAgent = useAgentsStore(state => state.createAgent);
+  
+  const { control, handleSubmit, watch, trigger, reset, formState: { errors, isDirty } } = useForm<AgentFormData>({
+    resolver: zodResolver(agentSchema),
+    defaultValues: {
+        name: '',
+        description: '',
+        category: 'custom',
+        welcome: '',
+        systemPrompt: '',
+        llmModel: 'gpt-4o',
+        temperature: 0.7,
+        maxTokens: 1024,
+        stt: { provider: 'deepgram', model: 'nova-3' },
+        languages: { 'en-IN': true, 'hi-IN': false, 'or-IN': false },
+        voiceConfig: {
+            'en-IN': { provider: 'cartesia', voiceId: 'Sonia', speed: 1, pitch: 0 },
+            'hi-IN': { provider: 'sarvam', voiceId: 'Anushka', speed: 1, pitch: 0 },
+            'or-IN': { provider: 'sarvam', voiceId: 'Anusha-OD', speed: 1, pitch: 0 },
+        },
+        knowledgeBase: { files: [], urls: [] },
+        advanced: { calendarIntegration: false, callRecording: true },
+    }
+  });
+  
+  const formData = watch();
+  const saveStatus = useAutoSave(formData, isDirty);
+
+  const isLastStep = currentStep === steps.length - 1;
+
+  const handleNext = async () => {
+    const currentStepFields = steps[currentStep].fields as (keyof AgentFormData)[];
+    const isValid = await trigger(currentStepFields);
+    
+    if (isValid) {
+      if (!isLastStep) {
+        setCurrentStep(currentStep + 1);
+      }
+    } else {
+        toast.error("Please fix the errors before proceeding.");
+    }
+  };
+
+  const handlePrev = () => setCurrentStep(s => Math.max(s - 1, 0));
+
+  const onSubmit = (data: AgentFormData) => {
+    setIsSubmitting(true);
+    const enabledLanguages = Object.entries(data.languages)
+        .filter(([, enabled]) => enabled)
+        .map(([lang]) => lang as Lang);
+
+    const newAgentData: Omit<Agent, 'id' | 'createdAt' | 'updatedAt' | 'status'> = {
+        name: data.name,
+        description: data.description,
+        category: data.category,
+        welcome: data.welcome,
+        systemPrompt: data.systemPrompt,
+        languages: enabledLanguages,
+        providers: { llm: 'openai', stt: data.stt.provider, tts: 'cartesia' }, // Simplified
+        voice: { byLang: data.voiceConfig || {} },
+        llmConfig: {
+            model: data.llmModel,
+            temperature: data.temperature,
+            maxTokens: data.maxTokens,
+        },
+        knowledgeBase: { enabled: !!data.knowledgeBase?.files?.length, documentIds: [] },
+        advanced: { tools: data.advanced?.calendarIntegration ? ['calendar'] : [], callRecording: !!data.advanced?.callRecording },
+    };
+    
+    setTimeout(() => {
+      const created = createAgent(newAgentData);
+      toast.success(`Agent "${created.name}" published successfully!`);
+      setIsSubmitting(false);
+      onOpenChange(false);
+    }, 1500); // Simulate network delay
+  };
+
+  useEffect(() => {
+    if (!open) {
+      const timer = setTimeout(() => {
+        reset();
+        setCurrentStep(0);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [open, reset]);
 
   const renderStepContent = () => {
     switch (steps[currentStep].id) {
@@ -289,9 +319,9 @@ export function CreateAgentWizard({ open, onOpenChange }: CreateAgentWizardProps
                     </div>
                     {errors.languages && <p className="text-red-500 text-xs mt-1">{errors.languages.root?.message}</p>}
                 </div>
-                <LanguageVoiceConfig lang="en-IN" label="English" />
-                <LanguageVoiceConfig lang="hi-IN" label="Hindi" />
-                <LanguageVoiceConfig lang="or-IN" label="Odia" />
+                <LanguageVoiceConfig lang="en-IN" label="English" control={control} watch={watch} />
+                <LanguageVoiceConfig lang="hi-IN" label="Hindi" control={control} watch={watch} />
+                <LanguageVoiceConfig lang="or-IN" label="Odia" control={control} watch={watch} />
             </div>
         );
         case 'knowledge': return <KnowledgeBaseStep />;
@@ -305,12 +335,12 @@ export function CreateAgentWizard({ open, onOpenChange }: CreateAgentWizardProps
             return (
                 <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Review Your Agent</h3>
-                    <pre className="text-xs bg-muted p-4 rounded-lg overflow-x-auto">
+                    <pre className="text-xs bg-muted p-4 rounded-lg overflow-x-auto max-h-60">
                         {JSON.stringify(formData, null, 2)}
                     </pre>
                 </div>
             );
-        default: return <div className="text-center py-10"><p>Configuration for this step is coming soon.</p></div>;
+        default: return <div className="text-center py-10"><p>This should not be reached.</p></div>;
     }
   };
 
@@ -356,10 +386,22 @@ export function CreateAgentWizard({ open, onOpenChange }: CreateAgentWizardProps
             <ArrowLeft className="h-4 w-4 mr-2" />
             Previous
           </Button>
-          {currentStep < steps.length - 1 ? (
-            <Button onClick={handleNext}>Next <ArrowRight className="h-4 w-4 ml-2" /></Button>
+          {isLastStep ? (
+            <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Publishing...
+                </>
+              ) : (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Publish Agent
+                </>
+              )}
+            </Button>
           ) : (
-            <Button onClick={handleSubmit(onSubmit)}>Create Agent</Button>
+            <Button onClick={handleNext}>Next <ArrowRight className="h-4 w-4 ml-2" /></Button>
           )}
         </DialogFooter>
       </DialogContent>

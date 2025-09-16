@@ -2,6 +2,7 @@ export type AgentStatus = 'active' | 'draft' | 'paused' | 'testing';
 export type ProviderName = 'openai' | 'google' | 'anthropic' | 'sarvam' | 'deepgram' | 'cartesia' | 'elevenlabs';
 export type Tier = 'free' | 'pro' | 'enterprise';
 export type Lang = 'en-IN' | 'hi-IN' | 'or-IN';
+export type CampaignStatus = 'draft' | 'scheduled' | 'running' | 'completed' | 'paused';
 
 export interface Agent {
   id: string;
@@ -83,4 +84,27 @@ export interface CallRecord {
   cost: number;
   timestamp: Date;
   transcript: { speaker: 'user' | 'agent'; text: string; timestamp: number }[];
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  description?: string;
+  agentId: string;
+  status: CampaignStatus;
+  contacts: { name: string; phone_number: string; [key: string]: any }[];
+  settings: {
+    callingWindow: { start: string; end: string; timezone: string };
+    maxAttempts: number;
+    retryDelay: number; // in minutes
+    callsPerMinute: number;
+    recordCalls: boolean;
+  };
+  progress: {
+    total: number;
+    completed: number;
+    success: number;
+  };
+  createdAt: string;
+  scheduledFor?: string;
 }

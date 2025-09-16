@@ -14,6 +14,7 @@ import { Settings } from '@/pages/Settings';
 import { Providers } from '@/pages/Providers';
 import { Billing } from '@/pages/Billing';
 import { CommandPalette } from '@/components/CommandPalette';
+import { Campaigns } from '@/pages/Campaigns';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
             <Route path="agents/:id/edit" element={<EditAgentPage />} />
             <Route path="providers" element={<Providers />} />
             <Route path="calls" element={<CallHistory />} />
+            <Route path="campaigns" element={<Campaigns />} />
             <Route path="numbers" element={<MyNumbers />} />
             <Route path="knowledge" element={<KnowledgeBase />} />
             <Route path="voice-lab" element={<VoiceLab />} />

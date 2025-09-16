@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/command"
 import { useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, Bot, Phone, BookOpen, BarChart2, CreditCard, Settings, Cpu, FlaskConical, Plus
+  LayoutDashboard, Bot, Phone, BookOpen, BarChart2, CreditCard, Settings, Cpu, FlaskConical, Plus, Send
 } from 'lucide-react';
 import { useAgentsStore } from '@/stores/agentsStore';
 
@@ -20,6 +20,7 @@ const navigation = [
   { name: 'Providers', href: '/providers', icon: Cpu },
   { name: 'Numbers', href: '/numbers', icon: Phone },
   { name: 'Knowledge Base', href: '/knowledge', icon: BookOpen },
+  { name: 'Campaigns', href: '/campaigns', icon: Send },
   { name: 'Voice Lab', href: '/voice-lab', icon: FlaskConical },
   { name: 'Analytics', href: '/analytics', icon: BarChart2 },
   { name: 'Billing', href: '/billing', icon: CreditCard },
@@ -63,7 +64,7 @@ export function CommandPalette() {
         <CommandSeparator />
         <CommandGroup heading="Agents">
           {agents.map((agent) => (
-             <CommandItem key={agent.id} onSelect={() => runCommand(() => navigate(`/agents/${agent.id}`))}>
+             <CommandItem key={agent.id} onSelect={() => runCommand(() => navigate(`/agents/${agent.id}/edit`))}>
                <Bot className="mr-2 h-4 w-4" />
                <span>{agent.name}</span>
              </CommandItem>

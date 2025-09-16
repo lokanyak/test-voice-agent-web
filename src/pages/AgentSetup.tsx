@@ -34,7 +34,8 @@ export function AgentSetup() {
         </div>
       );
     }
-
+    
+    // The logic to show EmptyState is now controlled by the initial state in the store
     if (agents.length === 0) {
       return <EmptyState onPrimaryAction={handleCreateAgent} />;
     }
